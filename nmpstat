@@ -1,0 +1,91 @@
+#!/usr/bin/python
+# parser for mpstat to show numa node and sockets etc.
+# Copyright (c) 2019 Allan McAleavy
+# Licensed under the Apache License, Version 2.0 (the "License")
+
+import os
+import re
+from subprocess import Popen, PIPE
+import argparse
+
+examples = """examples:
+    ./nmpstat <interval> <count> <node>
+"""
+# arguments
+parser = argparse.ArgumentParser(
+    description="Parse mpstat data to show numa data - requires lscpu",
+    formatter_class=argparse.RawDescriptionHelpFormatter,
+    epilog=examples)
+parser.add_argument("interval", help="mpstat interval", default=1,nargs="?")
+parser.add_argument("count", help="mpstat count",default=9999,nargs="?")
+parser.add_argument("node", help="numa node",default=-1,nargs="?")
+
+args = parser.parse_args()
+interval=str(args.interval)
+count=str(args.count)
+nnode=int(args.node)
+
+result={}
+
+def build_lscpu():
+    try:
+        myCmd = os.popen('lscpu -p')
+        for line in myCmd:
+            if re.search(b'^[0-9]',line):
+                data = line.split(',')
+                cpu  = data[0]
+                core = data[1]
+                sock = data[2]
+                node = data[3]
+                result[cpu]=cpu
+                result[cpu]={}
+                result[cpu]['core']=core
+                result[cpu]['sock']=sock
+                result[cpu]['node']=node
+
+    except:
+        print "Cant run lscpu -p"
+
+build_lscpu()
+
+command = "mpstat -P ALL"
+command = command + " " + interval
+command = command + " " + count
+try:
+    process = Popen(command, stdout=PIPE, shell=True)
+    while True:
+            output = process.stdout.readline()
+            if output == '' and process.poll() is not None:
+                break
+            if output:
+                data = output.split()
+                core="    "
+                sock="    "
+                node="    "
+                if len(data) > 0:
+                    if data[0] == "Linux":
+                       continue
+                    if data[1] == "CPU":
+                        print "\n"
+                        core="CORE"
+                        sock="SOCK"
+                        node="NODE"
+                        print("%-12s %-6s %-6s %-6s %-6s %-8s %-8s %-8s %-8s %-8s %-8s %-8s %-8s %-8s %-8s" %(data[0],node,sock,core,data[1],data[2],data[3],data[4],data[5],data[6],data[7],data[8],data[9],data[10],data[11]))
+                        continue
+                    if re.search(b'all',data[1]):
+                        print("%-12s %-6s %-6s %-6s %-6s %-8s %-8s %-8s %-8s %-8s %-8s %-8s %-8s %-8s %-8s" %(data[0],node,sock,core,data[1],data[2],data[3],data[4],data[5],data[6],data[7],data[8],data[9],data[10],data[11]))
+                        continue
+                    if data[1] != "CPU" or data[1] != "all":
+                        core=result[str(data[1])]['core']
+                        sock=result[str(data[1])]['sock']
+                        node=result[str(data[1])]['node']
+
+                        if int(nnode) == int(node):
+                            print("%-12s %-6s %-6s %-6s %-6s %-8s %-8s %-8s %-8s %-8s %-8s %-8s %-8s %-8s %-8s" %(data[0],node,sock,core,data[1],data[2],data[3],data[4],data[5],data[6],data[7],data[8],data[9],data[10],data[11]))
+                        if nnode == -1:
+                            print("%-12s %-6s %-6s %-6s %-6s %-8s %-8s %-8s %-8s %-8s %-8s %-8s %-8s %-8s %-8s" %(data[0],node,sock,core,data[1],data[2],data[3],data[4],data[5],data[6],data[7],data[8],data[9],data[10],data[11]))
+
+            rc = process.poll()
+except:
+    print "Cant run mpstat"
+    exit()
