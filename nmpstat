@@ -80,9 +80,7 @@ try:
                         sock=result[str(data[1])]['sock']
                         node=result[str(data[1])]['node']
 
-                        if int(nnode) == int(node):
-                            print("%-12s %-6s %-6s %-6s %-6s %-8s %-8s %-8s %-8s %-8s %-8s %-8s %-8s %-8s %-8s" %(data[0],node,sock,core,data[1],data[2],data[3],data[4],data[5],data[6],data[7],data[8],data[9],data[10],data[11]))
-                        if nnode == -1:
+                        if int(nnode) == int(node) or nnode == -1:
                             print("%-12s %-6s %-6s %-6s %-6s %-8s %-8s %-8s %-8s %-8s %-8s %-8s %-8s %-8s %-8s" %(data[0],node,sock,core,data[1],data[2],data[3],data[4],data[5],data[6],data[7],data[8],data[9],data[10],data[11]))
 
             rc = process.poll()
